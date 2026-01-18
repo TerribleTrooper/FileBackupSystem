@@ -1,0 +1,32 @@
+# ===== .NET build artifacts =====
+bin/
+obj/
+
+# ===== Rider / JetBrains =====
+.idea/
+*.sln.iml
+
+# ===== Visual Studio =====
+.vs/
+
+# ===== macOS =====
+.DS_Store
+
+# ===== User-specific files =====
+*.user
+*.userosscache
+*.suo
+
+# ===== Logs =====
+*.log
+
+# ===== Backup output (НЕ храним бэкапы в git) =====
+Backups/
+backups/
+
+# ===== Config (если не хочешь хранить реальные пути) =====
+# config.json
+
+# ===== Temporary files =====
+*.tmp
+*.temp
