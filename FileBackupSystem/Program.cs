@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Text.Json;
+using System.IO.Compression;
 using FileBackupSystem;
 
 // =======================
@@ -44,7 +45,7 @@ string logFilePath = Path.Combine(backupFolder, "backup.log");
 var logger = new Logger(logLevel, logFilePath);
 
 logger.Log(LogLevel.Info, "Backup application started");
-logger.Log(LogLevel.Info, $"Backup folder: {backupFolder}");
+logger.Log(LogLevel.Info, $"Backup folder created: {backupFolder}");
 
 // =======================
 // Process source folders
@@ -59,8 +60,18 @@ foreach (var sourceFolder in config.SourceFolders)
         continue;
     }
 
-    var files = Directory.GetFiles(sourceFolder);
-    logger.Log(LogLevel.Debug, $"Found {files.Length} files in {sourceFolder}");
+    string[] files;
+
+    try
+    {
+        files = Directory.GetFiles(sourceFolder);
+        logger.Log(LogLevel.Debug, $"Found {files.Length} files in {sourceFolder}");
+    }
+    catch (Exception ex)
+    {
+        logger.Log(LogLevel.Error, $"Failed to read files from {sourceFolder}: {ex.Message}");
+        continue;
+    }
 
     foreach (var file in files)
     {
@@ -88,3 +99,30 @@ foreach (var sourceFolder in config.SourceFolders)
 }
 
 logger.Log(LogLevel.Info, "Backup completed");
+
+// =======================
+// Create ZIP archive
+// =======================
+try
+{
+    string zipPath = backupFolder + ".zip";
+
+    ZipFile.CreateFromDirectory(
+        sourceDirectoryName: backupFolder,
+        destinationArchiveFileName: zipPath,
+        compressionLevel: CompressionLevel.Optimal,
+        includeBaseDirectory: false
+    );
+
+    logger.Log(LogLevel.Info, $"Backup archived to: {zipPath}");
+
+    // Удаляем папку после архивации (по заданию допустимо)
+    Directory.Delete(backupFolder, recursive: true);
+    logger.Log(LogLevel.Debug, $"Backup folder deleted: {backupFolder}");
+}
+catch (Exception ex)
+{
+    logger.Log(LogLevel.Error, $"Failed to create ZIP archive: {ex.Message}");
+}
+
+logger.Log(LogLevel.Info, "Backup application finished");
