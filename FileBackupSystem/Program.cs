@@ -13,8 +13,6 @@ try
     string json = File.ReadAllText("config.json");
     config = JsonSerializer.Deserialize<AppConfig>(json)
              ?? throw new Exception("Config is empty");
-
-    Console.WriteLine("Configuration loaded successfully");
 }
 catch (Exception ex)
 {
@@ -33,22 +31,38 @@ string backupFolder = Path.Combine(
 );
 
 Directory.CreateDirectory(backupFolder);
-Console.WriteLine($"Backup folder created: {backupFolder}");
+
+// =======================
+// Setup logger
+// =======================
+LogLevel logLevel =
+    Enum.TryParse(config.LogLevel, true, out LogLevel parsedLevel)
+        ? parsedLevel
+        : LogLevel.Info;
+
+string logFilePath = Path.Combine(backupFolder, "backup.log");
+var logger = new Logger(logLevel, logFilePath);
+
+logger.Log(LogLevel.Info, "Backup application started");
+logger.Log(LogLevel.Info, $"Backup folder: {backupFolder}");
 
 // =======================
 // Process source folders
 // =======================
 foreach (var sourceFolder in config.SourceFolders)
 {
-    Console.WriteLine($"Processing source folder: {sourceFolder}");
+    logger.Log(LogLevel.Info, $"Processing source folder: {sourceFolder}");
 
     if (!Directory.Exists(sourceFolder))
     {
-        Console.WriteLine($"Source folder does not exist: {sourceFolder}");
+        logger.Log(LogLevel.Error, $"Source folder does not exist: {sourceFolder}");
         continue;
     }
 
-    foreach (var file in Directory.GetFiles(sourceFolder))
+    var files = Directory.GetFiles(sourceFolder);
+    logger.Log(LogLevel.Debug, $"Found {files.Length} files in {sourceFolder}");
+
+    foreach (var file in files)
     {
         try
         {
@@ -56,21 +70,21 @@ foreach (var sourceFolder in config.SourceFolders)
             string destination = Path.Combine(backupFolder, fileName);
 
             File.Copy(file, destination, overwrite: true);
-            Console.WriteLine($"Copied: {fileName}");
+            logger.Log(LogLevel.Debug, $"Copied file: {fileName}");
         }
         catch (UnauthorizedAccessException)
         {
-            Console.WriteLine($"No access to file: {file}");
+            logger.Log(LogLevel.Error, $"No access to file: {file}");
         }
         catch (IOException ex)
         {
-            Console.WriteLine($"IO error with file {file}: {ex.Message}");
+            logger.Log(LogLevel.Error, $"IO error with file {file}: {ex.Message}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Unexpected error with file {file}: {ex.Message}");
+            logger.Log(LogLevel.Error, $"Unexpected error with file {file}: {ex.Message}");
         }
     }
 }
 
-Console.WriteLine("Backup completed");
+logger.Log(LogLevel.Info, "Backup completed");
